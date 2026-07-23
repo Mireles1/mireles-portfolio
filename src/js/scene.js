@@ -4,6 +4,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 
 // Fullscreen model scene: bloom-lit GLB floating on black,
 // mouse parallax + slow idle motion, runtime-tweakable
@@ -87,6 +88,60 @@ export class ModelScene {
       0.15
     )
     this.composer.addPass(this.bloom)
+
+    // cinematic grade: chromatic aberration (driven by scroll velocity),
+    // animated film grain, and a soft vignette — the "directed" finish
+    this._reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    this._scrollVel = 0
+    this._prevScrollP = 0
+    this._gradePass = new ShaderPass({
+      uniforms: {
+        tDiffuse: { value: null },
+        uTime: { value: 0 },
+        uAberration: { value: 0 },
+        uGrain: { value: 0.05 },
+        uVignette: { value: 1.1 },
+        uAspect: { value: window.innerWidth / window.innerHeight },
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tDiffuse;
+        uniform float uTime;
+        uniform float uAberration;
+        uniform float uGrain;
+        uniform float uVignette;
+        uniform float uAspect;
+        varying vec2 vUv;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+        void main() {
+          vec2 uv = vUv;
+          vec2 dir = uv - 0.5;
+          // radial chromatic aberration, stronger toward the edges
+          float amt = uAberration * (0.4 + dot(dir, dir) * 2.5);
+          float r = texture2D(tDiffuse, uv - dir * amt).r;
+          float g = texture2D(tDiffuse, uv).g;
+          float b = texture2D(tDiffuse, uv + dir * amt).b;
+          vec3 col = vec3(r, g, b);
+          // vignette (aspect-corrected so it stays circular)
+          vec2 vd = dir * vec2(uAspect, 1.0) * uVignette;
+          float vig = smoothstep(1.1, 0.3, length(vd));
+          col *= mix(0.7, 1.0, vig);
+          // animated film grain
+          float grain = hash(uv * vec2(1920.0, 1080.0) + fract(uTime)) - 0.5;
+          col += grain * uGrain;
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+    })
+    this.composer.addPass(this._gradePass)
 
     window.addEventListener('resize', () => this._onResize())
     window.addEventListener('pointermove', (e) => {
@@ -305,6 +360,15 @@ export class ModelScene {
     this._applyResponsiveFov()
     this.renderer.setSize(w, h)
     this.composer.setSize(w, h)
+    if (this._gradePass) {
+      this._gradePass.uniforms.uAspect.value = w / h
+      // lighter grain on small screens (and for reduced-motion users)
+      this._gradePass.uniforms.uGrain.value = this._reducedMotion
+        ? 0.02
+        : w < 640
+        ? 0.035
+        : 0.05
+    }
   }
 
   // On narrow / portrait screens a fixed vertical FOV magnifies the scene
@@ -343,6 +407,22 @@ export class ModelScene {
       // default (0,0) cursor would carve a hole in the scene centre
       if (this._pointerActive) {
         this._particleMat.uniforms.uMouse.value.copy(this._updateWorldMouse())
+      }
+    }
+
+    // cinematic grade: aberration eases toward a scroll-velocity target
+    if (this._gradePass) {
+      const g = this._gradePass.uniforms
+      g.uTime.value = t
+      const p = this.scrollP || 0
+      this._scrollVel += (Math.abs(p - this._prevScrollP) - this._scrollVel) * 0.15
+      this._prevScrollP = p
+      if (this._reducedMotion) {
+        g.uAberration.value = 0
+      } else {
+        const gain = window.innerWidth < 640 ? 0.5 : 1
+        const target = Math.min(0.001 + this._scrollVel * 0.4, 0.02) * gain
+        g.uAberration.value += (target - g.uAberration.value) * 0.2
       }
     }
 
