@@ -51,13 +51,16 @@ export class ModelScene {
     this.scene.background = new THREE.Color(0x060608)
     this.scene.fog = new THREE.FogExp2(0x060608, 0.055)
 
+    this._baseFov = 45
     this.camera = new THREE.PerspectiveCamera(
-      45,
+      this._baseFov,
       window.innerWidth / window.innerHeight,
       0.1,
       100
     )
-    this.camera.position.set(0, 0, this.opts.cameraZ)
+    this._zBoost = 0
+    this._applyResponsiveFov()
+    this.camera.position.set(0, 0, this.opts.cameraZ + this._zBoost)
 
     // lights
     this.scene.add(new THREE.AmbientLight(0x334, 1.2))
@@ -228,9 +231,30 @@ export class ModelScene {
     const w = window.innerWidth
     const h = window.innerHeight
     this.camera.aspect = w / h
-    this.camera.updateProjectionMatrix()
+    this._applyResponsiveFov()
     this.renderer.setSize(w, h)
     this.composer.setSize(w, h)
+  }
+
+  // On narrow / portrait screens a fixed vertical FOV magnifies the scene
+  // horizontally, which blows the rotating title rings up past the screen
+  // edges so they can't be read. Widen the vertical FOV as the viewport
+  // gets narrower to keep the *horizontal* field of view roughly constant.
+  _applyResponsiveFov() {
+    const aspect = this.camera.aspect
+    const ref = 1.6 // aspect at/above which the base FOV is used
+    if (aspect >= ref) {
+      this.camera.fov = this._baseFov
+      this._zBoost = 0
+    } else {
+      const hFov = 2 * Math.atan(Math.tan((this._baseFov * Math.PI) / 360) * ref)
+      const v = (2 * Math.atan(Math.tan(hFov / 2) / aspect) * 180) / Math.PI
+      this.camera.fov = Math.min(v, 74)
+      // FOV widening alone can't fully fit the large ring titles on very
+      // narrow screens, so also ease the camera back the narrower it gets.
+      this._zBoost = Math.min((ref / aspect - 1) * 1.6, 5)
+    }
+    this.camera.updateProjectionMatrix()
   }
 
   _animate() {
@@ -254,7 +278,7 @@ export class ModelScene {
 
     // camera drift with scroll
     if (this.scrollP != null) {
-      const target = this.opts.cameraZ + this.scrollP * 2.4
+      const target = this.opts.cameraZ + (this._zBoost || 0) + this.scrollP * 2.4
       this.camera.position.z += (target - this.camera.position.z) * 0.05
       this.camera.position.y += (-this.scrollP * 1.2 - this.camera.position.y) * 0.05
     }
