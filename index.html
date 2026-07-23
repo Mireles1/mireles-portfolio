@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Oscar Mireles</title>
+  <meta name="description" content="Oscar Mireles — a creative space for interactive experiments across SEO, data, Web3 and GPU compute." />
+  <link rel="icon" type="image/svg+xml" href="/fav.svg" />
+  <script type="module" src="/src/js/home.js"></script>
+</head>
+<body>
+
+  <!-- Page transition overlay -->
+  <div class="transition-component" id="transition">
+    <div class="wrapper">
+      <div class="t-logo">OM<span>.</span></div>
+    </div>
+    <div class="dots"></div>
+  </div>
+
+  <!-- Preloader -->
+  <div class="home-preloader" id="preloader">
+    <div class="p-top"></div>
+    <div class="p-center">
+      <div class="done">
+        <div class="text text-1"><p>Immerse</p></div>
+        <div class="send" id="start-btn">
+          <div class="child">
+            <span class="elem elem-1">[</span>
+            <span class="elem elem-2">]</span>
+            <span class="elem elem-3">[</span>
+            <span class="elem elem-4">]</span>
+            <div class="circle">
+              <div class="inner-circle"><p>start</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="text text-2"><p>me in <span class="arrow">&rarr;</span></p></div>
+      </div>
+      <div class="loading"><p>Loading</p></div>
+      <div class="progress">
+        <div class="bar"><div class="space"><div class="fill" id="load-fill"></div></div></div>
+      </div>
+      <div class="value"><p><span id="load-value">0</span><span class="pct">%</span></p></div>
+    </div>
+    <div class="p-bottom">
+      <div class="volume-hint">
+        <div class="waves"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <p>For the full effect, this experience<br />plays ambient sound</p>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header">
+      <div class="header-logo">
+        <a href="/" data-nav>OM<span>.</span></a>
+      </div>
+      <div class="right-menu">
+        <a href="/work.html" data-nav class="bracket-link">[<span>Work</span>]</a>
+        <a href="/resume.pdf" target="_blank" rel="noopener" class="bracket-link">[<span>Resume</span>]</a>
+        <a href="/contact.html" data-nav class="bracket-link">[<span>Contact</span>]</a>
+        <div class="menu-switch" id="menu-switch">
+          <div class="line"></div>
+          <div class="line"></div>
+          <span class="el el-1">[</span>
+          <span class="el el-2">]</span>
+          <span class="el el-3">[</span>
+          <span class="el el-4">]</span>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobile-menu">
+      <div class="mm-top">
+        <a href="/" data-nav class="bracket-link">[<span>Home</span>]</a>
+        <a href="/work.html" data-nav class="bracket-link">[<span>Work</span>]</a>
+        <a href="/resume.pdf" target="_blank" rel="noopener" class="bracket-link">[<span>Resume</span>]</a>
+        <a href="/contact.html" data-nav class="bracket-link">[<span>Contact</span>]</a>
+      </div>
+      <div class="mm-bottom">
+        <a href="https://www.linkedin.com/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://x.com/" target="_blank" rel="noopener">Twitter</a>
+        <a href="mailto:omireles011@gmail.com">omireles011@gmail.com</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- WebGL canvas -->
+  <canvas id="scene"></canvas>
+
+  <!-- Scene storytelling texts -->
+  <div class="scene-texts">
+    <div class="st-wrapper">
+      <div class="bottom-texts">
+        <p class="bottom-text bottom-text-1">Welcome to my creative space &mdash; where data, marketing and code collide into living experiments</p>
+        <p class="bottom-text bottom-text-2">Follow me into the deep end of interactive and immersive digital experiences</p>
+        <p class="bottom-text bottom-text-3">Everything here started as a question &mdash; keep scrolling and explore the answers</p>
+      </div>
+      <div class="left-text">
+        <p>Every project is a testament to curiosity &mdash; from GPU clusters in my room to tokens on mainnet</p>
+      </div>
+      <div class="right-text">
+        <p>Browse my work across SEO, econometrics, Web3 and the GPU compute economy</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Left decorative bar -->
+  <div class="left-bar">
+    <div class="lb-parent" id="left-bar-parent"></div>
+  </div>
+
+  <!-- Right scroll progress -->
+  <div class="right-bar">
+    <div class="rb-parent">
+      <span class="rb-caret">&#9650;</span>
+      <p class="progress" id="scroll-progress">0%</p>
+      <span class="rb-caret down">&#9660;</span>
+    </div>
+  </div>
+
+  <!-- Global controls: volume + customize trigger -->
+  <div class="social-links-global-parent">
+    <div class="social-links-global">
+      <div class="volume" id="volume-toggle">
+        <div class="v-lines">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="v-status"><p id="volume-status">on</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customize panel -->
+  <div class="customize" id="customize">
+    <div class="options-menu" id="options-menu">
+      <div class="om-block" data-menu="colors">
+        <p class="om-label">color</p>
+        <div class="colors" id="color-swatches"></div>
+      </div>
+      <div class="om-block" data-menu="glow">
+        <p class="om-label">glow</p>
+        <div class="slider-block">
+          <input type="range" class="slider" id="glow-slider" min="0" max="100" value="60" />
+          <div class="value-block"><span class="value" id="glow-value">60</span></div>
+        </div>
+      </div>
+      <div class="om-block" data-menu="speed">
+        <p class="om-label">speed</p>
+        <div class="slider-block">
+          <input type="range" class="slider" id="speed-slider" min="1" max="100" value="40" />
+          <div class="value-block"><span class="value" id="speed-value">0.04</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="selected-menu">
+      <div class="sm-top">
+        <div class="options" id="quick-options"></div>
+      </div>
+      <div class="sm-bottom">
+        <button class="restart" id="restart-btn" aria-label="reset scene">&#8635;</button>
+        <p class="title" id="customize-toggle">customize me</p>
+        <span class="place"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll driver -->
+  <div class="scroll-space">
+    <section class="panel" data-text="1"></section>
+    <section class="panel" data-text="2"></section>
+    <section class="panel" data-text="3"></section>
+    <section class="panel" data-text="4"></section>
+    <section class="panel" data-text="5"></section>
+
+    <!-- Footer -->
+    <div class="home-footer">
+      <div class="hf-wrapper">
+        <h4>Let&rsquo;s build<br />together</h4>
+        <a class="send" href="mailto:omireles011@gmail.com">
+          <div class="child">
+            <span class="elem elem-1">[</span>
+            <span class="elem elem-2">]</span>
+            <span class="elem elem-3">[</span>
+            <span class="elem elem-4">]</span>
+            <div class="circle">
+              <div class="inner-circle"><p>send<br />message</p></div>
+            </div>
+          </div>
+        </a>
+        <div class="for-social">
+          <div class="socials">
+            <a href="https://www.linkedin.com/" target="_blank" rel="noopener">linkedin</a>
+            <a href="https://x.com/" target="_blank" rel="noopener">twitter</a>
+            <a href="mailto:omireles011@gmail.com">email</a>
+          </div>
+          <div class="hf-bottom">
+            <p class="copy">&copy; 2026 Oscar Mireles &mdash; All rights reserved</p>
+          </div>
+        </div>
+        <div class="points"></div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <radialGradient id="g" cx="35%" cy="30%" r="90%">
+      <stop offset="0%" stop-color="#3b6bd6" stop-opacity="0.75"/>
+      <stop offset="60%" stop-color="#14203c"/>
+      <stop offset="100%" stop-color="#060608"/>
+    </radialGradient>
+    <pattern id="d" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1" fill="rgba(255,255,255,0.16)"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <rect width="800" height="500" fill="url(#d)"/>
+  <text x="40" y="440" font-family="Arial, sans-serif" font-weight="bold" font-size="30" letter-spacing="6" fill="rgba(255,255,255,0.85)">MINTCOIN.FUN</text>
+  <text x="40" y="470" font-family="monospace" font-size="14" letter-spacing="3" fill="rgba(255,255,255,0.4)">[ PLACEHOLDER - REPLACE ME ]</text>
+</svg>

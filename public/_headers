@@ -1,0 +1,12 @@
+# Cloudflare Pages headers (mirrors the old netlify.toml caching rules)
+# This file is copied to the dist/ root at build time.
+
+# Cache heavy immutable assets hard
+/models/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/audio/*
+  Cache-Control: public, max-age=604800
