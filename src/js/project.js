@@ -2,8 +2,10 @@ import '../css/main.css'
 import gsap from 'gsap'
 import { initHeader } from './header.js'
 import { PROJECTS, getProject } from './projects-data.js'
+import { initSmoothScroll } from './smooth-scroll.js'
 
 initHeader()
+initSmoothScroll()
 
 const params = new URLSearchParams(location.search)
 const project = getProject(params.get('id'))

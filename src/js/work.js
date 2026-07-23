@@ -3,8 +3,10 @@ import gsap from 'gsap'
 import { initHeader, bindNavLinks } from './header.js'
 import { ModelScene } from './scene.js'
 import { PROJECTS } from './projects-data.js'
+import { initSmoothScroll } from './smooth-scroll.js'
 
 initHeader()
+initSmoothScroll()
 
 // background scene: evanescent plasma drifting behind the grid
 const scene = new ModelScene(document.getElementById('scene'), {

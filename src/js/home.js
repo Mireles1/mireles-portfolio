@@ -5,9 +5,15 @@ import { audio } from './audio.js'
 import { ModelScene } from './scene.js'
 import { TextRings } from './rings.js'
 import { PROJECTS } from './projects-data.js'
+import { initSmoothScroll } from './smooth-scroll.js'
 
 initHeader()
 document.body.classList.add('locked')
+
+// inertial smooth scroll — held until the intro "start" so the
+// preloader stays locked, then released with the scene
+const lenis = initSmoothScroll()
+if (lenis) lenis.stop()
 
 // ---------------------------------------------------------------
 // Left decorative bar: crosses + SEO / AI / ECON / WEB3
@@ -87,6 +93,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
   audio.start()
   audio.click()
   document.body.classList.remove('locked')
+  if (lenis) lenis.start()
   gsap.to(preloader, {
     yPercent: -100,
     duration: 1.1,

@@ -2,8 +2,10 @@ import '../css/main.css'
 import gsap from 'gsap'
 import { initHeader } from './header.js'
 import { ModelScene } from './scene.js'
+import { initSmoothScroll } from './smooth-scroll.js'
 
 initHeader()
+initSmoothScroll()
 
 // crystal shard slowly rotating behind the contact info
 const scene = new ModelScene(document.getElementById('scene'), {
