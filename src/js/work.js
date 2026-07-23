@@ -43,20 +43,42 @@ PROJECTS.forEach((p, i) => {
 bindNavLinks(grid)
 
 // ---------------------------------------------------------------
-// Reveal-on-scroll
+// Reveal-on-scroll (choreographed: fade + rise + settle, with a
+// clip-path wipe on the media and a stagger across each row)
 // ---------------------------------------------------------------
-const io = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((e) => {
-      if (e.isIntersecting) {
-        gsap.to(e.target, { opacity: 1, y: 0, duration: 1, ease: 'power3.out' })
-        io.unobserve(e.target)
-      }
-    })
-  },
-  { threshold: 0.15 }
-)
-document.querySelectorAll('.reveal').forEach((el) => io.observe(el))
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const cards = [...document.querySelectorAll('.reveal')]
+// set hidden state up front so there's no flash before the observer fires
+gsap.set(cards, { opacity: 0, y: 52, scale: 0.965 })
+gsap.set('.reveal .media', { clipPath: 'inset(100% 0% 0% 0%)' })
+
+if (reduced) {
+  gsap.set(cards, { opacity: 1, y: 0, scale: 1 })
+  gsap.set('.reveal .media', { clipPath: 'inset(0% 0% 0% 0%)' })
+} else {
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e, k) => {
+        if (!e.isIntersecting) return
+        const el = e.target
+        io.unobserve(el)
+        const delay = k * 0.09 // stagger cards revealed together
+        gsap.to(el, { opacity: 1, y: 0, scale: 1, duration: 1.1, delay, ease: 'power3.out' })
+        const media = el.querySelector('.media')
+        if (media) {
+          gsap.to(media, {
+            clipPath: 'inset(0% 0% 0% 0%)',
+            duration: 1.15,
+            delay: delay + 0.05,
+            ease: 'power3.out',
+          })
+        }
+      })
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -6% 0px' }
+  )
+  cards.forEach((el) => io.observe(el))
+}
 
 // scroll drives the background camera
 window.addEventListener(

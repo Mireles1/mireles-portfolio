@@ -270,6 +270,7 @@ export class ModelScene {
                   emissiveIntensity: m.emissiveIntensity ?? 1,
                 })
                 m.transparent = true
+                this._applyFresnel(m)
               })
             }
           })
@@ -288,6 +289,30 @@ export class ModelScene {
         reject
       )
     })
+  }
+
+  // Inject a fresnel rim glow into a model material without replacing it:
+  // grazing-angle faces gain an emissive halo that the bloom pass lifts,
+  // giving the jellyfish an ethereal backlit edge. Only touches materials
+  // built on the standard/physical shader (where `normal` + `vViewPosition`
+  // exist); skips anything else safely.
+  _applyFresnel(mat) {
+    if (!mat || !('emissive' in mat)) return
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uFresnelColor = { value: new THREE.Color(0x9fd0ff) }
+      shader.uniforms.uFresnelPower = { value: 2.6 }
+      shader.uniforms.uFresnelIntensity = { value: 1.5 }
+      shader.fragmentShader =
+        'uniform vec3 uFresnelColor;\nuniform float uFresnelPower;\nuniform float uFresnelIntensity;\n' +
+        shader.fragmentShader.replace(
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
+           float _fres = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), uFresnelPower);
+           totalEmissiveRadiance += uFresnelColor * _fres * uFresnelIntensity;`
+        )
+      mat.userData.fresnel = shader.uniforms
+    }
+    mat.needsUpdate = true
   }
 
   _fitModel() {
@@ -439,7 +464,7 @@ export class ModelScene {
 
     // camera drift with scroll
     if (this.scrollP != null) {
-      const target = this.opts.cameraZ + (this._zBoost || 0) + this.scrollP * 2.4
+      const target = this.opts.cameraZ + (this._zBoost || 0) + this.scrollP * 1.0
       this.camera.position.z += (target - this.camera.position.z) * 0.05
       this.camera.position.y += (-this.scrollP * 1.2 - this.camera.position.y) * 0.05
     }
