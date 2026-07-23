@@ -92,6 +92,7 @@ export class ModelScene {
     window.addEventListener('pointermove', (e) => {
       this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1
       this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
+      this._pointerActive = true
     })
 
     this._animate = this._animate.bind(this)
@@ -99,24 +100,94 @@ export class ModelScene {
   }
 
   _addParticles() {
-    const count = 260
+    const count = 320
     const geo = new THREE.BufferGeometry()
     const pos = new Float32Array(count * 3)
+    const seed = new Float32Array(count) // random phase per point
+    const scale = new Float32Array(count) // random size multiplier
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 16
       pos[i * 3 + 1] = (Math.random() - 0.5) * 10
       pos[i * 3 + 2] = (Math.random() - 0.5) * 8 - 1
+      seed[i] = Math.random() * 6.2831
+      scale[i] = 0.5 + Math.random() * 1.4
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-    const mat = new THREE.PointsMaterial({
-      color: 0x9fc3ff,
-      size: 0.02,
+    geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1))
+    geo.setAttribute('aScale', new THREE.BufferAttribute(scale, 1))
+
+    // shader-driven dust: gentle drift, perspective depth fade, soft round
+    // sprites, and a repulsion push away from the cursor in world space.
+    this._particleMat = new THREE.ShaderMaterial({
       transparent: true,
-      opacity: 0.5,
       depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uMouse: { value: new THREE.Vector3(999, 999, 0) },
+        uMouseRadius: { value: 2.2 },
+        uMouseStrength: { value: 1.1 },
+        uSize: { value: 14 * Math.min(window.devicePixelRatio, 2) },
+        uColor: { value: new THREE.Color(0x9fc3ff) },
+      },
+      vertexShader: /* glsl */ `
+        uniform float uTime;
+        uniform vec3 uMouse;
+        uniform float uMouseRadius;
+        uniform float uMouseStrength;
+        uniform float uSize;
+        attribute float aSeed;
+        attribute float aScale;
+        varying float vFade;
+        void main() {
+          vec3 p = position;
+          // slow floating drift, phase-offset per point
+          p.x += sin(uTime * 0.35 + aSeed) * 0.18;
+          p.y += cos(uTime * 0.28 + aSeed * 1.7) * 0.16;
+          p.z += sin(uTime * 0.22 + aSeed * 0.6) * 0.12;
+          // cursor repulsion in the xy plane
+          vec2 diff = p.xy - uMouse.xy;
+          float d = length(diff);
+          if (d < uMouseRadius) {
+            float f = (1.0 - d / uMouseRadius);
+            p.xy += normalize(diff + 1e-4) * f * f * uMouseStrength;
+          }
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_Position = projectionMatrix * mv;
+          // perspective size + depth-based fade (nearer = bigger, brighter)
+          gl_PointSize = uSize * aScale * (1.0 / -mv.z);
+          vFade = clamp(1.0 - (-mv.z - 3.0) / 12.0, 0.15, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        varying float vFade;
+        void main() {
+          // soft round sprite
+          float dd = length(gl_PointCoord - 0.5);
+          if (dd > 0.5) discard;
+          float a = smoothstep(0.5, 0.05, dd) * vFade * 0.6;
+          gl_FragColor = vec4(uColor, a);
+        }
+      `,
     })
-    this.particles = new THREE.Points(geo, mat)
+
+    this.particles = new THREE.Points(geo, this._particleMat)
+    this.particles.frustumCulled = false
+    this._worldMouse = new THREE.Vector3()
     this.scene.add(this.particles)
+  }
+
+  // project the cursor (NDC) onto the particle plane (~z = -1) so the
+  // repulsion uniform lives in the same world space as the points
+  _updateWorldMouse() {
+    const v = new THREE.Vector3(this.mouse.x, this.mouse.y, 0.5)
+    v.unproject(this.camera)
+    const dir = v.sub(this.camera.position).normalize()
+    const targetZ = -1
+    const dist = (targetZ - this.camera.position.z) / dir.z
+    this._worldMouse.copy(this.camera.position).add(dir.multiplyScalar(dist))
+    return this._worldMouse
   }
 
   load(onProgress) {
@@ -264,6 +335,16 @@ export class ModelScene {
     const spd = 0.2 + this.speed * 1.6
 
     if (this.mixer) this.mixer.update(dt * spd)
+
+    // living dust: advance time + follow the cursor
+    if (this._particleMat) {
+      this._particleMat.uniforms.uTime.value = t
+      // only repel once the pointer has actually moved, otherwise the
+      // default (0,0) cursor would carve a hole in the scene centre
+      if (this._pointerActive) {
+        this._particleMat.uniforms.uMouse.value.copy(this._updateWorldMouse())
+      }
+    }
 
     if (this.model) {
       // idle float
